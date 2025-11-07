@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>30 Second Timer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .timer-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 60px 80px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .timer-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+        }
+
+        .timer-container:active {
+            transform: translateY(-2px);
+        }
+
+        .timer-display {
+            font-size: 120px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+        }
+
+        .timer-status {
+            font-size: 24px;
+            color: #666;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .timer-running {
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .timer-finished .timer-display {
+            color: #10b981;
+            animation: celebrate 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes celebrate {
+            0%, 100% {
+                transform: scale(1);
+            }
+            25% {
+                transform: scale(1.1);
+            }
+            75% {
+                transform: scale(0.95);
+            }
+        }
+
+        .progress-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            height: 320px;
+            z-index: -1;
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 1s linear;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .timer-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        @media (max-width: 768px) {
+            .timer-container {
+                padding: 40px 50px;
+            }
+
+            .timer-display {
+                font-size: 80px;
+            }
+
+            .timer-status {
+                font-size: 18px;
+            }
+
+            .progress-ring {
+                width: 240px;
+                height: 240px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="timer-container" id="timerContainer">
+        <div class="timer-wrapper">
+            <svg class="progress-ring" width="320" height="320">
+                <circle
+                    class="progress-ring__circle"
+                    stroke="#667eea"
+                    stroke-width="8"
+                    fill="transparent"
+                    r="150"
+                    cx="160"
+                    cy="160"
+                    id="progressCircle"
+                />
+            </svg>
+            <div class="timer-display" id="timerDisplay">30</div>
+        </div>
+        <div class="timer-status" id="timerStatus">Click to start</div>
+    </div>
+
+    <script>
+        class Timer {
+            constructor() {
+                this.duration = 30;
+                this.remaining = this.duration;
+                this.isRunning = false;
+                this.intervalId = null;
+
+                this.container = document.getElementById('timerContainer');
+                this.display = document.getElementById('timerDisplay');
+                this.status = document.getElementById('timerStatus');
+                this.progressCircle = document.getElementById('progressCircle');
+
+                this.setupProgressRing();
+                this.container.addEventListener('click', () => this.handleClick());
+            }
+
+            setupProgressRing() {
+                const radius = this.progressCircle.r.baseVal.value;
+                const circumference = radius * 2 * Math.PI;
+                this.progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+                this.progressCircle.style.strokeDashoffset = circumference;
+            }
+
+            setProgress(percent) {
+                const radius = this.progressCircle.r.baseVal.value;
+                const circumference = radius * 2 * Math.PI;
+                const offset = circumference - (percent / 100) * circumference;
+                this.progressCircle.style.strokeDashoffset = offset;
+            }
+
+            handleClick() {
+                if (!this.isRunning) {
+                    this.start();
+                }
+            }
+
+            start() {
+                if (this.isRunning) return;
+
+                // If timer is at 0, reset it
+                if (this.remaining === 0) {
+                    this.remaining = this.duration;
+                }
+
+                this.isRunning = true;
+                this.container.classList.add('timer-running');
+                this.container.classList.remove('timer-finished');
+                this.status.textContent = 'Running...';
+
+                this.intervalId = setInterval(() => {
+                    this.remaining--;
+                    this.updateDisplay();
+
+                    if (this.remaining <= 0) {
+                        this.stop();
+                    }
+                }, 1000);
+            }
+
+            stop() {
+                this.isRunning = false;
+                clearInterval(this.intervalId);
+                this.intervalId = null;
+                this.container.classList.remove('timer-running');
+                this.container.classList.add('timer-finished');
+                this.status.textContent = 'Click to restart';
+            }
+
+            updateDisplay() {
+                this.display.textContent = this.remaining;
+                const percent = ((this.duration - this.remaining) / this.duration) * 100;
+                this.setProgress(percent);
+            }
+        }
+
+        // Initialize timer when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new Timer();
+        });
+    </script>
+</body>
+</html>
